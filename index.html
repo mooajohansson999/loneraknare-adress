@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Telia Adressändring – Löneräknare</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#eef2ff,#f5f3ff);min-height:100vh;padding:16px}
+.wrap{max-width:680px;margin:0 auto}
+h1{color:#4338ca;font-size:1.5rem;text-align:center}
+.sub{color:#6b7280;font-size:.85rem;text-align:center;margin-top:4px;margin-bottom:12px}
+.warn{background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:12px 16px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px}
+.warn p{color:#92400e;font-size:.78rem;line-height:1.5}
+.card{background:#fff;border-radius:16px;border:1px solid #f3f4f6;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card-header{padding:12px 16px;font-size:.85rem;font-weight:600}
+.card-header.indigo{background:#4338ca;color:#fff}
+.card-header.purple{background:#7c3aed;color:#fff}
+.row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f9fafb}
+.row:last-child{border-bottom:none}
+.row-label{flex:1}
+.row-label .name{font-size:.85rem;font-weight:500;color:#1f2937}
+.row-label .meta{font-size:.74rem;color:#9ca3af;margin-top:2px}
+input[type=number]{width:72px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;font-size:.85rem;text-align:center;outline:none}
+input[type=number]:focus{border-color:#818cf8;box-shadow:0 0 0 2px #e0e7ff}
+.amt{width:110px;text-align:right;font-size:.85rem;font-weight:600;color:#4338ca}
+.sum-row{display:flex;justify-content:space-between;font-size:.85rem;padding:4px 0}
+.sum-row .lbl{color:#6b7280}.sum-row .val{font-weight:500}
+.sum-row .val.red{color:#ef4444}.sum-row .val.green{color:#16a34a}
+.sum-total{display:flex;justify-content:space-between;align-items:center;padding-top:12px;margin-top:4px;border-top:1px solid #f3f4f6}
+.sum-total .lbl{font-weight:700;color:#1f2937}.sum-total .val{font-size:1.2rem;font-weight:800;color:#4338ca}
+.anger-wrap{padding:14px 16px}
+.anger-wrap label{font-size:.85rem;font-weight:600;color:#374151;display:block;margin-bottom:8px}
+.anger-inner{display:flex;align-items:center;gap:12px}
+.anger-note{font-size:.82rem;color:#ef4444;font-weight:500}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useMemo}=React;
+function fmt(n){return n.toLocaleString("sv-SE",{minimumFractionDigits:2,maximumFractionDigits:2})+" kr"}
+function avgComm(arr){if(!arr.length)return 0;return arr.reduce((s,c)=>s+c.commission,0)/arr.length}
+
+const CATEGORIES=[
+  {id:601,name:"Bredband Flytt",campaigns:[{id:6011,name:"Flytt BB100",commission:45},{id:6012,name:"Flytt BB150",commission:45},{id:6013,name:"Flytt BB250",commission:80},{id:6014,name:"Flytt BB300",commission:80},{id:6015,name:"Flytt BB500",commission:120},{id:6016,name:"Flytt BB600",commission:120},{id:6017,name:"Flytt BB1000",commission:125}]},
+  {id:602,name:"TV Flytt",campaigns:[{id:6021,name:"Flytt TV Mini",commission:0},{id:6022,name:"Flytt TV Mellan",commission:70},{id:6023,name:"Flytt TV Max",commission:100}]},
+  {id:603,name:"Streaming Film Flytt",campaigns:[{id:6031,name:"Flytt Streaming mer",commission:15},{id:6032,name:"Flytt Streaming maxad",commission:30},{id:6033,name:"Flytt Streaming mest",commission:70},{id:6034,name:"Flytt Film & Serier 250",commission:30},{id:6035,name:"Flytt Film & Serier 300",commission:30}]},
+  {id:604,name:"Streaming Sport Flytt",campaigns:[{id:6041,name:"Flytt Lilla sportpaketet",commission:30},{id:6042,name:"Flytt Lilla sportpaketet med netflix",commission:30},{id:6043,name:"Flytt Stora sportpaketet",commission:45},{id:6044,name:"Flytt Stora sportpaketet med netflix",commission:45},{id:6045,name:"Flytt Största sportpaketet",commission:60},{id:6046,name:"Flytt Största sportpaketet med netflix",commission:60},{id:6047,name:"Flytt All sport 450",commission:30},{id:6048,name:"Flytt All hockey 450",commission:30},{id:6049,name:"Flytt All sport från viaplay 299kr",commission:30},{id:6050,name:"Flytt All sport från viaplay 399kr",commission:80}]},
+  {id:605,name:"Bredband Nyteck",campaigns:[{id:6051,name:"BB100",commission:100},{id:6052,name:"BB150",commission:100},{id:6053,name:"BB250",commission:150},{id:6054,name:"BB300",commission:150},{id:6055,name:"BB500",commission:175},{id:6056,name:"BB600",commission:175},{id:6057,name:"BB1000",commission:200},{id:6058,name:"MBH",commission:250}]},
+  {id:606,name:"TV Nyteck",campaigns:[{id:6061,name:"TV Mini",commission:150},{id:6062,name:"TV Mellan",commission:200},{id:6063,name:"TV Max",commission:300}]},
+  {id:607,name:"Streaming Film Nyteck",campaigns:[{id:6071,name:"Streaming mer",commission:100},{id:6072,name:"Streaming maxad",commission:125},{id:6073,name:"Streaming mest",commission:175},{id:6074,name:"Film & Serier 250",commission:125},{id:6075,name:"Film & Serier 300",commission:150}]},
+  {id:608,name:"Streaming Sport Nyteck",campaigns:[{id:6081,name:"Lilla sportpaketet",commission:150},{id:6082,name:"Lilla sportpaketet med netflix",commission:150},{id:6083,name:"Stora sportpaketet",commission:250},{id:6084,name:"Stora sportpaketet med netflix",commission:250},{id:6085,name:"Största sportpaketet",commission:300},{id:6086,name:"Största sportpaketet med netflix",commission:300},{id:6087,name:"All sport 450",commission:175},{id:6088,name:"All hockey 450",commission:175},{id:6089,name:"All sport från viaplay 299kr",commission:50},{id:6090,name:"All sport från viaplay 399kr",commission:200}]},
+  {id:609,name:"Mobilabonnemang",campaigns:[{id:6091,name:"Mobil 10GB",commission:200},{id:6092,name:"Mobil 20GB",commission:250},{id:6093,name:"Mobil Obegränsad",commission:300},{id:6094,name:"Mobil Obegränsad Plus",commission:450},{id:6095,name:"Mobil Obegränsad Plus Streaming",commission:450},{id:6096,name:"Mobil Obegränsad Max",commission:450},{id:6097,name:"Extra användare",commission:250}]},
+  {id:610,name:"Hårdvara",campaigns:[{id:6101,name:"TV Box",commission:100}]},
+];
+
+function App(){
+  const [sales,setSales]=useState({});
+  const [anger,setAnger]=useState("");
+  function q(id){return parseInt(sales[id])||0;}
+  function setSale(id,val){setSales(p=>({...p,[id]:val}));}
+  const gross=useMemo(()=>CATEGORIES.reduce((s,cat)=>s+q(cat.id)*avgComm(cat.campaigns),0),[sales]);
+  const angerPct=parseFloat(anger)||0;
+  const angerDed=gross*(angerPct/100);
+  const afterAnger=gross-angerDed;
+  const holiday=afterAnger*0.12;
+  const total=afterAnger+holiday;
+  return(
+    <div className="wrap">
+      <h1>Telia Adressändring</h1>
+      <p className="sub">Löneräknare</p>
+      <div className="warn"><span>⚠️</span><p>Lönen beräknas utifrån <strong>snittprovision</strong> per kategori. Den faktiska lönen kan skilja sig beroende på exakt vilka kampanjer som sålts.</p></div>
+      <div className="card">
+        <div className="card-header indigo">Antal sålda per kategori</div>
+        {CATEGORIES.map(cat=>(
+          <div className="row" key={cat.id}>
+            <div className="row-label">
+              <div className="name">{cat.name}</div>
+              <div className="meta">Snittprovision: {avgComm(cat.campaigns).toLocaleString("sv-SE",{maximumFractionDigits:0})} kr ({cat.campaigns.length} kampanjer)</div>
+            </div>
+            <input type="number" min="0" placeholder="0" value={sales[cat.id]||""} onChange={e=>setSale(cat.id,e.target.value)}/>
+            <div className="amt">{fmt(q(cat.id)*avgComm(cat.campaigns))}</div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="anger-wrap">
+          <label>Ångerprocent (%)</label>
+          <div className="anger-inner">
+            <input type="number" min="0" max="100" step="0.1" placeholder="0.0" value={anger} onChange={e=>setAnger(e.target.value)} style={{width:"120px"}}/>
+            {angerPct>0&&<span className="anger-note">−{fmt(angerDed)}</span>}
+          </div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-header purple">Sammanställning</div>
+        <div style={{padding:"16px"}}>
+          <div className="sum-row"><span className="lbl">Bruttoprovision</span><span className="val">{fmt(gross)}</span></div>
+          {angerPct>0&&<div className="sum-row"><span className="lbl">Ångeravdrag ({angerPct}%)</span><span className="val red">−{fmt(angerDed)}</span></div>}
+          <div className="sum-row"><span className="lbl">Provision efter ånger</span><span className="val">{fmt(afterAnger)}</span></div>
+          <div className="sum-row"><span className="lbl">Semesterersättning (12%)</span><span className="val green">{fmt(holiday)}</span></div>
+          <div className="sum-total"><span className="lbl">Uppskattad lön</span><span className="val">{fmt(total)}</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
